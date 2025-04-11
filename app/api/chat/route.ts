@@ -4,8 +4,6 @@ import {
   streamText,
   appendResponseMessages,
   UIMessage,
-  generateText,
-  Message,
   createDataStreamResponse,
   smoothStream,
 } from "ai";

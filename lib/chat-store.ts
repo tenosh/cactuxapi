@@ -30,7 +30,7 @@ export async function addMessages({ messages }: { messages: any[] }) {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error("Failed to add messages to database");
+    console.error("Failed to add messages to database", error);
     throw error;
   }
 }
