@@ -13,6 +13,17 @@ import { getMostRecentUserMessage, getTrailingMessageId } from "@/utils";
 import { systemPrompt } from "@/lib/prompts";
 import { generateTitleFromUserMessage } from "@/utils";
 
+// Add CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: Request) {
   try {
     const {
@@ -28,9 +39,10 @@ export async function POST(request: Request) {
     const userMessage = getMostRecentUserMessage(messages);
 
     if (!userMessage) {
-      return new Response("No se encontró mensajes del usuario", {
-        status: 400,
-      });
+      return NextResponse.json(
+        { error: "No se encontró mensajes del usuario" },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     const chat = await getChatById({ id: chatId });
@@ -54,7 +66,7 @@ export async function POST(request: Request) {
       ],
     });
 
-    return createDataStreamResponse({
+    const response = createDataStreamResponse({
       execute: (dataStream) => {
         const result = streamText({
           model: openai("gpt-4o-mini"),
@@ -63,7 +75,6 @@ export async function POST(request: Request) {
           maxSteps: 10,
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: tools,
-          // toolChoice: "auto",
           onFinish: async ({ response }) => {
             try {
               const assistantId = getTrailingMessageId({
@@ -121,9 +132,21 @@ export async function POST(request: Request) {
         return JSON.stringify(error);
       },
     });
-  } catch (error) {
-    return new Response("An error occurred while processing your request!", {
-      status: 404,
+
+    // Add CORS headers to the response
+    const headers = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
     });
+
+    return new NextResponse(response.body, {
+      ...response,
+      headers,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "An error occurred while processing your request!" },
+      { status: 404, headers: corsHeaders }
+    );
   }
 }
