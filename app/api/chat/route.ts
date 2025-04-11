@@ -13,44 +13,7 @@ import { addMessages, createChat, getChatById } from "@/lib/chat-store";
 import { tools } from "@/tools";
 import { getMostRecentUserMessage, getTrailingMessageId } from "@/utils";
 import { systemPrompt } from "@/lib/prompts";
-
-export async function generateTitleFromUserMessage({
-  message,
-}: {
-  message: Message;
-}) {
-  const { text: title } = await generateText({
-    model: openai("gpt-4o-mini"),
-    system: `\n
-    - you will generate a short title based on the first message a user begins a conversation with
-    - ensure it is not more than 80 characters long
-    - the title should be a summary of the user's message
-    - do not use quotes or colons
-    - the title should be in spanish
-    `,
-    prompt: JSON.stringify(message),
-  });
-
-  return title;
-}
-
-export function errorHandler(error: unknown) {
-  if (error == null) {
-    return "unknown error";
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  console.log(JSON.stringify(error));
-
-  return JSON.stringify(error);
-}
+import { generateTitleFromUserMessage } from "@/utils";
 
 export async function POST(request: Request) {
   try {
@@ -143,7 +106,21 @@ export async function POST(request: Request) {
         });
       },
       onError: (error) => {
-        return errorHandler(error);
+        if (error == null) {
+          return "unknown error";
+        }
+
+        if (typeof error === "string") {
+          return error;
+        }
+
+        if (error instanceof Error) {
+          return error.message;
+        }
+
+        console.log(JSON.stringify(error));
+
+        return JSON.stringify(error);
       },
     });
   } catch (error) {
