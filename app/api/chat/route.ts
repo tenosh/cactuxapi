@@ -13,6 +13,17 @@ import { getMostRecentUserMessage, getTrailingMessageId } from "@/utils";
 import { systemPrompt } from "@/lib/prompts";
 import { generateTitleFromUserMessage } from "@/utils";
 
+// Increase Next.js API timeout for streaming responses
+export const config = {
+  api: {
+    responseLimit: false,
+    bodyParser: {
+      sizeLimit: "4mb",
+    },
+  },
+  maxDuration: 300, // 5 minutes in seconds
+};
+
 // Add CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,7 +83,7 @@ export async function POST(request: Request) {
           model: openai("gpt-4o-mini"),
           system: systemPrompt,
           messages,
-          maxSteps: 5,
+          maxSteps: 20,
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: tools,
           onFinish: async ({ response }) => {
@@ -108,7 +119,14 @@ export async function POST(request: Request) {
           },
         });
 
-        result.consumeStream();
+        // Consume the stream with error handling
+        try {
+          result.consumeStream().catch((streamError: Error) => {
+            console.error("Stream error occurred:", streamError);
+          });
+        } catch (streamError) {
+          console.error("Stream consumption error:", streamError);
+        }
 
         result.mergeIntoDataStream(dataStream, {
           sendReasoning: true,
