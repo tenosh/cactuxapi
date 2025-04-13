@@ -66,13 +66,13 @@ export async function POST(request: Request) {
       ],
     });
 
-    const response = createDataStreamResponse({
+    return createDataStreamResponse({
       execute: (dataStream) => {
         const result = streamText({
           model: openai("gpt-4o-mini"),
           system: systemPrompt,
           messages,
-          maxSteps: 10,
+          maxSteps: 5,
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: tools,
           onFinish: async ({ response }) => {
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
                 ],
               });
             } catch (error) {
-              console.error("Failed to save chat");
+              console.error("Failed to save chat", error);
             }
           },
         });
@@ -131,17 +131,7 @@ export async function POST(request: Request) {
 
         return JSON.stringify(error);
       },
-    });
-
-    // Add CORS headers to the response
-    const headers = new Headers(response.headers);
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      headers.set(key, value);
-    });
-
-    return new NextResponse(response.body, {
-      ...response,
-      headers,
+      headers: corsHeaders,
     });
   } catch (error) {
     return NextResponse.json(
