@@ -13,4 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
     detectSessionInUrl: false,
   },
+  global: {
+    fetch: fetch, // Use native fetch for Edge compatibility
+  },
 });

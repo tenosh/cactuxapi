@@ -16,6 +16,8 @@ import { generateTitleFromUserMessage } from "@/utils";
 // Increase Next.js API timeout for streaming responses
 export const config = {
   api: {
+    // Edge functions don't use bodyParser or responseLimit
+    // but we keep this for local development compatibility
     responseLimit: false,
     bodyParser: {
       sizeLimit: "4mb",
@@ -23,6 +25,9 @@ export const config = {
   },
   maxDuration: 300, // 5 minutes in seconds
 };
+
+// Enable Edge Runtime for this API route
+export const runtime = "edge";
 
 // Add CORS headers
 const corsHeaders = {
