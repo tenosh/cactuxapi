@@ -9,6 +9,8 @@ interface WeatherReading {
     temp: number;
     feels_like: number;
     humidity: number;
+    temp_min: number;
+    temp_max: number;
   };
   weather: Array<{
     description: string;
@@ -16,6 +18,10 @@ interface WeatherReading {
   wind: {
     speed: number;
   };
+  clouds: {
+    all: number;
+  };
+  pop: number;
 }
 
 interface WeatherResponse {
@@ -24,7 +30,7 @@ interface WeatherResponse {
 
 export const weatherTool = tool({
   description:
-    "Get current and forecast weather for a climbing location, give the user the average temp for the day, neither max or min.",
+    "Get current and forecast weather for a climbing location, give the user the max and min temperature for the next 5 days.",
   parameters: z.object({
     location: z.string().describe("The climbing zone to get weather for"),
   }),
@@ -80,17 +86,37 @@ export const weatherTool = tool({
 
       // Process and format the weather data with proper typing
       const forecast = weatherData.list
-        .filter((reading: WeatherReading) =>
-          reading.dt_txt.includes("12:00:00")
-        )
+        .filter((reading: WeatherReading) => {
+          // Get readings for 9:00, 12:00, 15:00, and 18:00 to show daily progression
+          const hour = new Date(reading.dt * 1000).getHours();
+          return [9, 12, 15, 18].includes(hour);
+        })
         .map((reading: WeatherReading) => ({
           date: new Date(reading.dt * 1000).toLocaleDateString(),
+          time: new Date(reading.dt * 1000).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           temp: Math.round(reading.main.temp),
           feels_like: Math.round(reading.main.feels_like),
+          temp_min: Math.round(reading.main.temp_min),
+          temp_max: Math.round(reading.main.temp_max),
           conditions: reading.weather[0]?.description || "Desconocido",
-          wind_speed: reading.wind.speed,
+          wind_speed: Math.round(reading.wind.speed * 3.6), // Convert m/s to km/h
           humidity: reading.main.humidity,
+          clouds: reading.clouds.all,
+          pop: Math.round(reading.pop * 100), // Convert probability to percentage
         }));
+
+      // Group forecast by day
+      const dailyForecast = forecast.reduce((acc: any, reading) => {
+        const date = reading.date;
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(reading);
+        return acc;
+      }, {});
 
       return {
         location: normalizedLocation,
@@ -99,10 +125,11 @@ export const weatherTool = tool({
           feels_like: Math.round(weatherData.list[0]?.main.feels_like || 0),
           conditions:
             weatherData.list[0]?.weather[0]?.description || "Desconocido",
-          wind_speed: weatherData.list[0]?.wind.speed || 0,
+          wind_speed: Math.round(weatherData.list[0]?.wind.speed * 3.6 || 0),
           humidity: weatherData.list[0]?.main.humidity || 0,
+          clouds: weatherData.list[0]?.clouds.all || 0,
         },
-        forecast,
+        forecast: dailyForecast,
       };
     } catch (error) {
       console.error("Weather tool error:", error);
