@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { embed, tool } from "ai";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
@@ -17,9 +17,9 @@ export const retrieveAccommodationDataTool = tool({
     // Handle case where userQuery might be undefined
     const query = userQuery || "accommodation in Guadalcazar";
 
-    const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: query,
+    const embedding = google.textEmbeddingModel("text-embedding-004", {
+      outputDimensionality: 768, // optional, number of dimensions for the embedding
+      taskType: "SEMANTIC_SIMILARITY", // optional, specifies the task type for generating embeddings
     });
 
     try {
@@ -28,6 +28,7 @@ export const retrieveAccommodationDataTool = tool({
         match_count: 10,
         filter: "accommodation",
       });
+      console.log("data", data);
 
       if (error) throw error;
 

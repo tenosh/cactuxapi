@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { generateObject, tool } from "ai";
 import { z } from "zod";
 
@@ -14,7 +14,7 @@ export const identifyZoneTool = tool({
   }),
   execute: async ({ userQuery }) => {
     const result = await generateObject({
-      model: openai("gpt-4o-mini"),
+      model: google("gemini-2.5-flash-preview-04-17"),
       system: `You are a climbing zone identifier for Guadalcazar. Your task is to identify which zone the user is asking about.
 
         Available zones and their alternative names:
@@ -23,6 +23,7 @@ export const identifyZoneTool = tool({
         - Panales
         - San Cayetano (also known as: San caye, Cayetano)
         - Zelda (also known as: Cuevas cuatas)
+        - Las comadres (also known as: Comadres, Realejo)
 
         IMPORTANT: Respond ONLY with one of these exact values:
         - "candelas"
@@ -30,6 +31,7 @@ export const identifyZoneTool = tool({
         - "panales"
         - "cayetano"
         - "zelda"
+        - "comadres"
         - "guadalcazar" (if query is about the general area)
         - null (if no zone can be confidently identified)
 

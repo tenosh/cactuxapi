@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { openai } from "@ai-sdk/openai";
+import { google, GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import {
   streamText,
   appendResponseMessages,
@@ -85,7 +85,15 @@ export async function POST(request: Request) {
     return createDataStreamResponse({
       execute: (dataStream) => {
         const result = streamText({
-          model: openai("gpt-4o-mini"),
+          model: google("gemini-2.5-flash-preview-04-17"),
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
+              responseModalities: ["TEXT"],
+            } satisfies GoogleGenerativeAIProviderOptions,
+          },
           system: systemPrompt,
           messages,
           maxSteps: 20,

@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { embed, tool } from "ai";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,10 @@ export const retrieveRelevantClimbingDataTool = tool({
         cayetano: "san cayetano",
         zelda: "zelda",
         "cuevas cuatas": "zelda",
+        comadres: "comadres",
+        realejo: "comadres",
+        "las comadres": "comadres",
+        "el realejo": "comadres",
         guadalcazar: "guadalcazar",
       };
 
@@ -39,17 +43,26 @@ export const retrieveRelevantClimbingDataTool = tool({
     };
     const normalizedZone = normalizeZone(zone);
 
+    const model = google.textEmbeddingModel("text-embedding-004", {
+      outputDimensionality: 768, // match the dimensions expected by the database
+      taskType: "SEMANTIC_SIMILARITY", // optional, specifies the task type for generating embeddings
+    });
+
     const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
+      model: model,
       value: userQuery,
     });
 
+    console.log("embedding", embedding);
+
+    console.log("normalizedZone", normalizedZone);
     try {
       const { data, error } = await supabase.rpc("match_data", {
         query_embedding: embedding,
         match_count: 20,
         filter: normalizedZone,
       });
+      console.log("data", data);
 
       if (error) throw error;
 
