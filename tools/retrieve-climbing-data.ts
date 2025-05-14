@@ -69,31 +69,36 @@ export const retrieveRelevantClimbingDataTool = tool({
       const lowerZone = zone.toLowerCase();
       console.log("Detecting zone from query:", lowerZone);
 
-      const zoneKeywords = [
-        "gruta de las candelas",
-        "las candelas",
-        "candelas",
-        "joya del salitre",
-        "el salitre",
-        "salitre",
-        "panales",
-        "san cayetano",
-        "san caye",
-        "cayetano",
-        "zelda",
-        "cuevas cuatas",
-        "comadres",
-        "realejo",
-        "las comadres",
-        "el realejo",
-        "guadalcazar",
-      ];
+      // Map zone keywords to standardized zone values
+      const zoneMap: Record<string, string> = {
+        "gruta de las candelas": "candelas",
+        "las candelas": "candelas",
+        candelas: "candelas",
+        "joya del salitre": "salitre",
+        "el salitre": "salitre",
+        salitre: "salitre",
+        panales: "panales",
+        "san cayetano": "san cayetano",
+        "san caye": "san cayetano",
+        cayetano: "san cayetano",
+        zelda: "zelda",
+        "cuevas cuatas": "zelda",
+        comadres: "comadres",
+        realejo: "comadres",
+        "las comadres": "comadres",
+        "el realejo": "comadres",
+      };
 
       // Check if any zone keywords appear in the query
-      for (const keyword of zoneKeywords) {
+      for (const [keyword, standardZone] of Object.entries(zoneMap)) {
         if (lowerZone.includes(keyword.toLowerCase())) {
-          console.log("Zone detected in query:", keyword);
-          return keyword;
+          console.log(
+            "Zone detected in query:",
+            keyword,
+            "-> Mapped to:",
+            standardZone
+          );
+          return standardZone;
         }
       }
 
