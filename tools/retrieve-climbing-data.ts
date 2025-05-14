@@ -115,10 +115,27 @@ export const retrieveRelevantClimbingDataTool = tool({
 
     // For zone, first use provided zone, then try to detect from query
     const detectedZone = parseZone(zone);
+    console.log("Detected zone:", detectedZone);
     if (detectedZone) {
       filters.source = detectedZone;
     } else {
-      filters.source = "guadalcazar";
+      // Instead of defaulting to "guadalcazar", determine based on climbing type
+      if (
+        type === "boulder_group" ||
+        detectedFilters.type === "boulder_group"
+      ) {
+        // For bouldering queries, use "comadres" as the default zone
+        filters.source = "comadres";
+      } else if (
+        type === "route_group" ||
+        detectedFilters.type === "route_group"
+      ) {
+        // For sport routes, don't specify a source to include all sport sectors
+        // We'll let the database query return routes from all sport climbing sectors
+      } else {
+        // If no specific type is detected, don't set a default source
+        // This allows the database to return results from all zones
+      }
     }
 
     if (type) {
