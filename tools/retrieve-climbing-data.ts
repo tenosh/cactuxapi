@@ -57,7 +57,7 @@ export const retrieveRelevantClimbingDataTool = tool({
     try {
       const { data, error } = await supabase.rpc("match_data", {
         query_embedding: embedding,
-        match_count: 20,
+        match_count: 10,
         filter: normalizedZone,
       });
 

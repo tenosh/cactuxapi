@@ -96,7 +96,7 @@ export async function POST(request: Request) {
           },
           system: systemPrompt,
           messages,
-          maxSteps: 20,
+          maxSteps: 5,
           experimental_transform: smoothStream({ chunking: "word" }),
           tools: tools,
           onFinish: async ({ response }) => {
