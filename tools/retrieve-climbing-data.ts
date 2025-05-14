@@ -53,8 +53,6 @@ export const retrieveRelevantClimbingDataTool = tool({
       value: userQuery,
     });
 
-    console.log("embedding", embedding);
-
     console.log("normalizedZone", normalizedZone);
     try {
       const { data, error } = await supabase.rpc("match_data", {
@@ -62,7 +60,6 @@ export const retrieveRelevantClimbingDataTool = tool({
         match_count: 20,
         filter: normalizedZone,
       });
-      console.log("data", data);
 
       if (error) throw error;
 

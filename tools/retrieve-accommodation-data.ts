@@ -17,9 +17,14 @@ export const retrieveAccommodationDataTool = tool({
     // Handle case where userQuery might be undefined
     const query = userQuery || "accommodation in Guadalcazar";
 
-    const embedding = google.textEmbeddingModel("text-embedding-004", {
-      outputDimensionality: 768, // optional, number of dimensions for the embedding
+    const model = google.textEmbeddingModel("text-embedding-004", {
+      outputDimensionality: 768, // match the dimensions expected by the database
       taskType: "SEMANTIC_SIMILARITY", // optional, specifies the task type for generating embeddings
+    });
+
+    const { embedding } = await embed({
+      model: model,
+      value: query,
     });
 
     try {
@@ -28,7 +33,6 @@ export const retrieveAccommodationDataTool = tool({
         match_count: 10,
         filter: "accommodation",
       });
-      console.log("data", data);
 
       if (error) throw error;
 
