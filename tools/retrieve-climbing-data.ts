@@ -12,36 +12,129 @@ export const retrieveRelevantClimbingDataTool = tool({
       .describe(
         "The user's query about Guadalcazar climbing areas, routes, or local information"
       ),
-    zone: z.string().describe("The zone to retrieve climbing data for"),
+    zone: z
+      .string()
+      .optional()
+      .describe("The zone to retrieve climbing data for"),
+    type: z
+      .enum(["sector_info", "route_group", "boulder_group"])
+      .optional()
+      .describe(
+        "Type of climbing data to filter by (sector_info, route_group, boulder_group)"
+      ),
+    gradeGroup: z
+      .array(z.string())
+      .optional()
+      .describe("Array of grade groups to filter by (e.g., ['5.13', 'V8'])"),
   }),
-  execute: async ({ userQuery, zone }) => {
-    const normalizeZone = (zone: string): string => {
-      if (!zone) return "guadalcazar";
+  execute: async ({ userQuery, zone, type, gradeGroup }) => {
+    // Function to intelligently detect filters from the user query if not explicitly provided
+    const detectFilters = (query: string) => {
+      const detectedFilters: {
+        type?: string;
+        gradeGroup?: string[];
+      } = {};
 
-      const zoneMap: Record<string, string> = {
-        "gruta de las candelas": "candelas",
-        "las candelas": "candelas",
-        candelas: "candelas",
-        "joya del salitre": "salitre",
-        "el salitre": "salitre",
-        salitre: "salitre",
-        panales: "panales",
-        "san cayetano": "san cayetano",
-        "san caye": "san cayetano",
-        cayetano: "san cayetano",
-        zelda: "zelda",
-        "cuevas cuatas": "zelda",
-        comadres: "comadres",
-        realejo: "comadres",
-        "las comadres": "comadres",
-        "el realejo": "comadres",
-        guadalcazar: "guadalcazar",
-      };
+      // Detect climbing type (boulders vs routes)
+      if (
+        query.toLowerCase().includes("boulder") ||
+        query.toLowerCase().includes("bouldering")
+      ) {
+        detectedFilters.type = "boulder_group";
+      } else if (
+        query.toLowerCase().includes("route") ||
+        query.toLowerCase().includes("sport")
+      ) {
+        detectedFilters.type = "route_group";
+      }
 
-      const normalizedInput = zone.toLowerCase().trim();
-      return zoneMap[normalizedInput] || "guadalcazar";
+      // Detect grades
+      const boulderGradeRegex = /\bV\d+\b/gi;
+      const routeGradeRegex = /\b5\.\d+[+-]?\b/gi;
+
+      const boulderGrades = query.match(boulderGradeRegex) || [];
+      const routeGrades = query.match(routeGradeRegex) || [];
+
+      if (boulderGrades.length > 0 || routeGrades.length > 0) {
+        detectedFilters.gradeGroup = [...boulderGrades, ...routeGrades];
+      }
+
+      return detectedFilters;
     };
-    const normalizedZone = normalizeZone(zone);
+
+    // Extract potential zone from user query if not explicitly provided
+    const parseZone = (zone: string | undefined): string | undefined => {
+      if (!zone) return undefined;
+
+      const lowerZone = zone.toLowerCase();
+      console.log("Detecting zone from query:", lowerZone);
+
+      const zoneKeywords = [
+        "gruta de las candelas",
+        "las candelas",
+        "candelas",
+        "joya del salitre",
+        "el salitre",
+        "salitre",
+        "panales",
+        "san cayetano",
+        "san caye",
+        "cayetano",
+        "zelda",
+        "cuevas cuatas",
+        "comadres",
+        "realejo",
+        "las comadres",
+        "el realejo",
+        "guadalcazar",
+      ];
+
+      // Check if any zone keywords appear in the query
+      for (const keyword of zoneKeywords) {
+        if (lowerZone.includes(keyword.toLowerCase())) {
+          console.log("Zone detected in query:", keyword);
+          return keyword;
+        }
+      }
+
+      // If query mentions boulder/bouldering and doesn't specify a zone, default to comadres
+      if (lowerZone.includes("boulder") || lowerZone.includes("bouldering")) {
+        console.log("Bouldering query detected, defaulting to comadres");
+        return "comadres";
+      }
+
+      console.log("No zone detected in query");
+      return undefined;
+    };
+
+    // Detect filters from user query if not explicitly provided
+    const detectedFilters = detectFilters(userQuery);
+
+    // Build filters object, prioritizing explicitly provided filters over detected ones
+    const filters: Record<string, any> = {};
+
+    // For zone, first use provided zone, then try to detect from query
+    const detectedZone = parseZone(zone);
+    if (detectedZone) {
+      filters.source = detectedZone;
+    } else {
+      filters.source = "guadalcazar";
+    }
+
+    if (type) {
+      filters.type = type;
+    } else if (detectedFilters.type) {
+      filters.type = detectedFilters.type;
+    }
+
+    if (gradeGroup && gradeGroup.length > 0) {
+      filters.grade_group = gradeGroup;
+    } else if (
+      detectedFilters.gradeGroup &&
+      detectedFilters.gradeGroup.length > 0
+    ) {
+      filters.grade_group = detectedFilters.gradeGroup;
+    }
 
     const model = google.textEmbeddingModel("text-embedding-004", {
       outputDimensionality: 768, // match the dimensions expected by the database
@@ -53,12 +146,13 @@ export const retrieveRelevantClimbingDataTool = tool({
       value: userQuery,
     });
 
-    console.log("normalizedZone", normalizedZone);
+    console.log("Applying filters:", filters);
+
     try {
-      const { data, error } = await supabase.rpc("match_data", {
+      const { data, error } = await supabase.rpc("match_advanced_data", {
         query_embedding: embedding,
         match_count: 10,
-        filter: normalizedZone,
+        filters: filters,
       });
 
       if (error) throw error;
