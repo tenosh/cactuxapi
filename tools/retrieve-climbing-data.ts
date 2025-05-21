@@ -176,22 +176,112 @@ export const retrieveRelevantClimbingDataTool = tool({
         match_count: 10,
         filters: filters,
       });
+      // console.log("Data:", data);
 
       if (error) throw error;
 
       // For the retrieveRelevantClimbingData tool, add interface for the matched data
       interface MatchedData {
+        id: string;
         title: string;
         content: string;
+        summary: string;
+        metadata: {
+          type: string;
+          source: string[];
+          chunk_size: number;
+          crawled_at: string;
+          grade_group: string;
+          route_count: number;
+          sector_name: string;
+          source_searchable: string;
+        };
+        similarity: number;
       }
 
-      // Update the data mapping
-      const formatted_chunks = data.map(
-        (doc: MatchedData) => `# ${doc.title}\n\n${doc.content}`
-      ) as string[];
+      interface Route {
+        id: string;
+        sectorId: string;
+        name: string;
+        grade: string;
+        type: string;
+        quality: number;
+        bolts?: number;
+        description: string;
+      }
 
-      // Return with explicit type
-      return formatted_chunks.join("\n\n---\n\n") as string;
+      interface FormattedResponse {
+        title: string;
+        summary: string;
+        routes: Route[];
+      }
+
+      // Log the raw data for debugging
+      // console.log("Data:", data);
+
+      // Parse the raw data to extract structured data
+      const parsedData: FormattedResponse[] = data.map((doc: MatchedData) => {
+        const routes: Route[] = [];
+        const lines = doc.content.split("\n");
+        let currentRoute: Partial<Route> = {};
+
+        // We're still parsing the content field which contains the markdown text with route details
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+
+          // Check if this is a route name (starts with ## )
+          if (line.startsWith("## ")) {
+            // If we have a route in progress, add it to the routes array
+            if (currentRoute.name) {
+              routes.push(currentRoute as Route);
+            }
+
+            // Start a new route
+            currentRoute = {
+              name: line.substring(3).trim(),
+            };
+          }
+          // Parse route properties
+          else if (line.startsWith("- **ID:**")) {
+            currentRoute.id = line.substring(9).trim();
+          } else if (line.startsWith("- **Sector ID:**")) {
+            currentRoute.sectorId = line.substring(16).trim();
+          } else if (line.startsWith("- **Grado:**")) {
+            currentRoute.grade = line.substring(12).trim();
+          } else if (line.startsWith("- **Tipo:**")) {
+            currentRoute.type = line.substring(11).trim();
+          } else if (line.startsWith("- **Calidad:**")) {
+            currentRoute.quality = parseInt(line.substring(14).trim(), 10) || 0;
+          } else if (line.startsWith("- **Bolts:**")) {
+            currentRoute.bolts =
+              parseInt(line.substring(12).trim(), 10) || undefined;
+          }
+          // If we're not on a property line and the next line is not a property or route name,
+          // this is likely the description
+          else if (
+            line &&
+            !line.startsWith("- **") &&
+            (i === lines.length - 1 || !lines[i + 1].startsWith("- **"))
+          ) {
+            currentRoute.description = line;
+          }
+        }
+
+        // Add the last route if there is one
+        if (currentRoute.name) {
+          routes.push(currentRoute as Route);
+        }
+
+        return {
+          title: doc.title,
+          summary: doc.summary,
+          routes: routes,
+        };
+      });
+      console.log("Parsed data:", parsedData);
+
+      // Return all parsed data items instead of just the first one
+      return parsedData;
     } catch (error) {
       console.error("Error while retrieveRelevantClimbingData", error);
     }
