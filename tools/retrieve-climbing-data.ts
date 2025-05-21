@@ -36,15 +36,30 @@ export const retrieveRelevantClimbingDataTool = tool({
       } = {};
 
       // Detect climbing type (boulders vs routes)
-      if (
+      const isBoulder =
         query.toLowerCase().includes("boulder") ||
-        query.toLowerCase().includes("bouldering")
-      ) {
+        query.toLowerCase().includes("boulders") ||
+        query.toLowerCase().includes("bouldering") ||
+        query.toLowerCase().includes("bloque") ||
+        query.toLowerCase().includes("bloques") ||
+        query.toLowerCase().includes("bulder") ||
+        query.toLowerCase().includes("bulders");
+      const isRoute =
+        query.toLowerCase().includes("ruta") ||
+        query.toLowerCase().includes("sport") ||
+        query.toLowerCase().includes("via") ||
+        query.toLowerCase().includes("vía") ||
+        query.toLowerCase().includes("deportiva") ||
+        query.toLowerCase().includes("depo");
+
+      // Handle cases where both types are mentioned
+      if (isBoulder && isRoute) {
+        // If both types are mentioned, don't set a specific type filter
+        // This will allow the query to return both boulder and route results
+        detectedFilters.type = undefined;
+      } else if (isBoulder) {
         detectedFilters.type = "boulder_group";
-      } else if (
-        query.toLowerCase().includes("route") ||
-        query.toLowerCase().includes("sport")
-      ) {
+      } else if (isRoute) {
         detectedFilters.type = "route_group";
       }
 
@@ -123,24 +138,6 @@ export const retrieveRelevantClimbingDataTool = tool({
     console.log("Detected zone:", detectedZone);
     if (detectedZone) {
       filters.source = detectedZone;
-    } else {
-      // Instead of defaulting to "guadalcazar", determine based on climbing type
-      if (
-        type === "boulder_group" ||
-        detectedFilters.type === "boulder_group"
-      ) {
-        // For bouldering queries, use "comadres" as the default zone
-        filters.source = "comadres";
-      } else if (
-        type === "route_group" ||
-        detectedFilters.type === "route_group"
-      ) {
-        // For sport routes, don't specify a source to include all sport sectors
-        // We'll let the database query return routes from all sport climbing sectors
-      } else {
-        // If no specific type is detected, don't set a default source
-        // This allows the database to return results from all zones
-      }
     }
 
     if (type) {
