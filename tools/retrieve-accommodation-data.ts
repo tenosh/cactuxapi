@@ -13,27 +13,74 @@ export const retrieveAccommodationDataTool = tool({
         "The user's query about accommodations, restaurants, or general information about Guadalcazar"
       ),
     businessType: z
-      .enum([
-        "restaurant",
-        "cafe",
-        "hostal",
-        "hotel",
-        "private_rooms",
-        "camping",
-        "other",
+      .union([
+        z.enum([
+          "restaurant",
+          "cafe",
+          "hostel",
+          "hotel",
+          "private_rooms",
+          "camping",
+          "cerveza",
+          "mezcal",
+          "vino",
+          "licor",
+          "gasolina",
+          "mecanico",
+          "carniceria",
+          "mercado",
+          "abarrotes",
+          "farmacias",
+          "gym",
+          "helados",
+          "other",
+        ]),
+        z.array(
+          z.enum([
+            "restaurant",
+            "cafe",
+            "hostel",
+            "hotel",
+            "private_rooms",
+            "camping",
+            "cerveza",
+            "mezcal",
+            "vino",
+            "licor",
+            "gasolina",
+            "mecanico",
+            "carniceria",
+            "mercado",
+            "abarrotes",
+            "farmacias",
+            "gym",
+            "helados",
+            "other",
+          ])
+        ),
       ])
       .optional()
       .describe(
-        "Type of business to filter by (restaurant, cafe, hostel, hotel, private_rooms, camping, other)"
+        "Type(s) of business to filter by (can be a single type or an array of types)"
       ),
   }),
   execute: async ({ userQuery, businessType }) => {
+    // Convert businessType to array if it's a single string
+    const businessTypeArray = businessType
+      ? Array.isArray(businessType)
+        ? businessType
+        : [businessType]
+      : [];
     // Handle case where userQuery might be undefined
     const query = userQuery || "accommodation in Guadalcazar";
 
-    // Function to intelligently detect business types from the user query if not explicitly provided
-    const detectBusinessType = (query: string) => {
+    // Function to intelligently detect business types from the user query and/or explicitly provided businessType(s)
+    const detectBusinessType = (
+      query: string,
+      providedBusinessTypes?: string | string[]
+    ): string[] => {
       const lowerQuery = query.toLowerCase();
+      const detectedTypes: string[] = [];
 
       // Check for restaurant keywords
       if (
@@ -44,7 +91,7 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("desayunar") ||
         lowerQuery.includes("desayuno")
       ) {
-        return "restaurant";
+        detectedTypes.push("restaurant");
       }
 
       // Check for cafe keywords
@@ -53,7 +100,7 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("café") ||
         lowerQuery.includes("cafeteria")
       ) {
-        return "cafe";
+        detectedTypes.push("cafe");
       }
 
       // Check for hostel keywords
@@ -63,7 +110,7 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("dormitorio") ||
         lowerQuery.includes("cuartos compartidos")
       ) {
-        return "hostal";
+        detectedTypes.push("hostel");
       }
 
       // Check for hotel keywords
@@ -73,7 +120,7 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("inn") ||
         lowerQuery.includes("lodge")
       ) {
-        return "hotel";
+        detectedTypes.push("hotel");
       }
 
       // Check for private rooms keywords
@@ -83,7 +130,7 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("habitación privada") ||
         lowerQuery.includes("cuarto privado")
       ) {
-        return "private_rooms";
+        detectedTypes.push("private_rooms");
       }
 
       // Check for camping keywords
@@ -96,11 +143,161 @@ export const retrieveAccommodationDataTool = tool({
         lowerQuery.includes("campamento") ||
         lowerQuery.includes("carpa")
       ) {
-        return "camping";
+        detectedTypes.push("camping");
       }
 
-      // Default to undefined if no specific type is detected
-      return undefined;
+      // Check for cerveza keywords
+      if (
+        lowerQuery.includes("cerveza") ||
+        lowerQuery.includes("cervecería") ||
+        lowerQuery.includes("beer") ||
+        lowerQuery.includes("birra") ||
+        lowerQuery.includes("cervecería") ||
+        lowerQuery.includes("chela") ||
+        lowerQuery.includes("cheve")
+      ) {
+        detectedTypes.push("cerveza");
+      }
+
+      // Check for mezcal keywords
+      if (
+        lowerQuery.includes("mezcal") ||
+        lowerQuery.includes("mezcalería") ||
+        lowerQuery.includes("agave") ||
+        lowerQuery.includes("destilado")
+      ) {
+        detectedTypes.push("mezcal");
+      }
+
+      // Check for vino keywords
+      if (lowerQuery.includes("vino") || lowerQuery.includes("wine")) {
+        detectedTypes.push("vino");
+      }
+
+      // Check for licor keywords
+      if (
+        lowerQuery.includes("licor") ||
+        lowerQuery.includes("spirits") ||
+        lowerQuery.includes("alcohol") ||
+        lowerQuery.includes("bebidas")
+      ) {
+        detectedTypes.push("licor");
+      }
+
+      // Check for gasolina keywords
+      if (
+        lowerQuery.includes("gasolina") ||
+        lowerQuery.includes("gas") ||
+        lowerQuery.includes("combustible") ||
+        lowerQuery.includes("petrol") ||
+        lowerQuery.includes("gasolinera")
+      ) {
+        detectedTypes.push("gasolina");
+      }
+
+      // Check for mecanico keywords
+      if (
+        lowerQuery.includes("mecánico") ||
+        lowerQuery.includes("mecanico") ||
+        lowerQuery.includes("taller") ||
+        lowerQuery.includes("reparación") ||
+        lowerQuery.includes("auto") ||
+        lowerQuery.includes("coche")
+      ) {
+        detectedTypes.push("mecanico");
+      }
+
+      // Check for carniceria keywords
+      if (
+        lowerQuery.includes("carnicería") ||
+        lowerQuery.includes("carniceria") ||
+        lowerQuery.includes("carne") ||
+        lowerQuery.includes("butcher") ||
+        lowerQuery.includes("meat")
+      ) {
+        detectedTypes.push("carniceria");
+      }
+
+      // Check for mercado keywords
+      if (
+        lowerQuery.includes("mercado") ||
+        lowerQuery.includes("market") ||
+        lowerQuery.includes("tianguis") ||
+        lowerQuery.includes("plaza")
+      ) {
+        detectedTypes.push("mercado");
+      }
+
+      // Check for abarrotes keywords
+      if (
+        lowerQuery.includes("abarrotes") ||
+        lowerQuery.includes("tienda") ||
+        lowerQuery.includes("grocery") ||
+        lowerQuery.includes("store") ||
+        lowerQuery.includes("minisuper")
+      ) {
+        detectedTypes.push("abarrotes");
+      }
+
+      // Check for farmacias keywords
+      if (
+        lowerQuery.includes("farmacia") ||
+        lowerQuery.includes("pharmacy") ||
+        lowerQuery.includes("medicamento") ||
+        lowerQuery.includes("medicine") ||
+        lowerQuery.includes("droguería")
+      ) {
+        detectedTypes.push("farmacias");
+      }
+
+      // Check for gym keywords
+      if (
+        lowerQuery.includes("gym") ||
+        lowerQuery.includes("gimnasio") ||
+        lowerQuery.includes("fitness") ||
+        lowerQuery.includes("ejercicio") ||
+        lowerQuery.includes("workout")
+      ) {
+        detectedTypes.push("gym");
+      }
+
+      // Check for helados keywords
+      if (
+        lowerQuery.includes("helado") ||
+        lowerQuery.includes("helados") ||
+        lowerQuery.includes("ice cream") ||
+        lowerQuery.includes("nieve") ||
+        lowerQuery.includes("heladería")
+      ) {
+        detectedTypes.push("helados");
+      }
+
+      // Check for other keywords or if nothing specific is detected
+      if (
+        lowerQuery.includes("otro") ||
+        lowerQuery.includes("other") ||
+        lowerQuery.includes("servicio") ||
+        lowerQuery.includes("service")
+      ) {
+        detectedTypes.push("other");
+      }
+
+      // Add the explicitly provided businessType(s) if they exist
+      if (providedBusinessTypes) {
+        const typesToAdd = Array.isArray(providedBusinessTypes)
+          ? providedBusinessTypes
+          : [providedBusinessTypes];
+
+        // Add each type, avoiding duplicates
+        typesToAdd.forEach((type) => {
+          if (!detectedTypes.includes(type)) {
+            detectedTypes.push(type);
+          }
+        });
+      }
+
+      // Return the detected types or an empty array if none detected
+      return detectedTypes;
     };
 
     // Build filters object, prioritizing explicitly provided filters over detected ones
@@ -109,14 +306,10 @@ export const retrieveAccommodationDataTool = tool({
       source: "accommodation",
     };
 
-    // Add business type filter if provided or detected
-    if (businessType) {
-      filters.business_type = [businessType];
-    } else {
-      const detectedType = detectBusinessType(query);
-      if (detectedType) {
-        filters.business_type = [detectedType];
-      }
+    // Always detect business types from query and combine with explicitly provided businessType(s)
+    const detectedTypes = detectBusinessType(query, businessTypeArray);
+    if (detectedTypes.length > 0) {
+      filters.business_type = detectedTypes;
     }
 
     console.log("Applying filters:", filters);
