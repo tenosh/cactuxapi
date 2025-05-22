@@ -275,7 +275,7 @@ export const retrieveRelevantClimbingDataTool = tool({
           routes: routes,
         };
       });
-      console.log("Parsed data:", parsedData);
+      // console.log("Parsed data:", parsedData);
 
       // Return all parsed data items instead of just the first one
       return parsedData;
