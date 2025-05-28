@@ -325,12 +325,24 @@ export const retrieveAccommodationDataTool = tool({
     });
 
     try {
+      // Check if filters object is empty
+      const isEmptyFilters = Object.keys(filters).length === 0;
+
+      if (isEmptyFilters) {
+        console.log("Skipping search due to empty filters");
+        return {
+          data: [],
+          message: "Search skipped - no filters provided",
+        };
+      }
+
       const { data, error } = await supabase.rpc("match_advanced_data", {
         query_embedding: embedding,
         match_count: 10,
         filters: filters,
       });
-      console.log("Data:", data);
+      // console.log("Accommodation Data:", data);
+      console.log("Accommodation Data returned");
 
       if (error) throw error;
 
